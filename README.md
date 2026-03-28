@@ -1,3 +1,14 @@
+---
+title: CodeReviewEnv
+emoji: 🔍
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+tags:
+  - openenv
+---
+
 # CodeReviewEnv 🔍
 
 An OpenEnv-compliant environment where an AI agent performs **real Python code review** — detecting bugs, classifying them by type and severity, and generating corrected code.
