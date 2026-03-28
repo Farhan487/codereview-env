@@ -1,0 +1,84 @@
+name: codereview-env
+version: "1.0.0"
+description: >
+  A real-world OpenEnv environment where an AI agent performs Python code review.
+  The agent reads buggy code snippets and must detect bugs, classify them,
+  and generate corrected code — simulating tasks that real software engineers do daily.
+
+tags:
+  - openenv
+  - code-review
+  - python
+  - software-engineering
+  - real-world
+
+author: codereview-env-team
+license: MIT
+
+tasks:
+  - id: bug_detection
+    difficulty: easy
+    description: "Detect whether a Python snippet contains a bug and identify its line number."
+    score_range: [0.0, 1.0]
+    grader: deterministic
+
+  - id: bug_classification
+    difficulty: medium
+    description: "Classify the bug type (logic/off_by_one/type/security/style/performance) and severity."
+    score_range: [0.0, 1.0]
+    grader: deterministic
+
+  - id: code_fix
+    difficulty: hard
+    description: "Generate corrected Python code that fixes the identified bug."
+    score_range: [0.0, 1.0]
+    grader: deterministic
+
+observation_space:
+  type: object
+  properties:
+    code_snippet:
+      type: string
+      description: "Python source code with an intentional bug."
+    language:
+      type: string
+      enum: [python]
+    task_description:
+      type: string
+      description: "Natural language description of what the agent must do."
+    task_id:
+      type: string
+      enum: [bug_detection, bug_classification, code_fix]
+    step_number:
+      type: integer
+    max_steps:
+      type: integer
+
+action_space:
+  type: object
+  properties:
+    response:
+      type: object
+      description: >
+        JSON object. Schema depends on task:
+        - bug_detection: {has_bug: bool, line_number: int|null}
+        - bug_classification: {bug_type: str, severity: str, line_number: int, explanation: str}
+        - code_fix: {fixed_code: str, explanation: str}
+
+reward:
+  type: float
+  range: [-0.3, 1.1]
+  description: >
+    Shaped reward with partial progress signals.
+    Partial credit is awarded for getting some components right.
+    Step penalty discourages wasting moves.
+    Bonus for solving on first attempt.
+
+environment:
+  max_steps: 5
+  reset_on_done: true
+  deterministic: true  # Given same seed, same snippets are served
+
+docker:
+  base_image: python:3.11-slim
+  port: 7860
