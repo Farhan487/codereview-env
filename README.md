@@ -11,28 +11,47 @@ tags:
 
 # CodeReviewEnv 🔍
 
-An OpenEnv-compliant environment where an AI agent performs **real Python code review** — detecting bugs, classifying them by type and severity, and generating corrected code.
-
-This simulates a task that professional software engineers do every day, making it a meaningful benchmark for AI agent capability.
+> A real-world OpenEnv environment where AI agents perform Python code review
+> detecting bugs, classifying them, and generating fixes.
+> Simulates tasks that professional software engineers do every day.
 
 ---
 
-## Environment Description
+## Why Code Review?
 
-The agent receives Python code snippets containing intentional, realistic bugs. The bugs span a range of categories: logic errors, off-by-one mistakes, type errors, security vulnerabilities, and more.
+Code review is one of the most cognitively demanding tasks in software engineering.
+It requires understanding program logic, identifying subtle errors, and reasoning about
+correctness — making it an ideal benchmark for AI agent capability.
 
-The environment exposes 3 tasks of increasing difficulty:
+---
 
-| Task ID | Difficulty | What the Agent Does |
-|---|---|---|
-| `bug_detection` | Easy | Identify if a bug exists and its line number |
-| `bug_classification` | Medium | Classify bug type + severity |
-| `code_fix` | Hard | Generate corrected code |
+## Tasks
+
+| # | Task ID | Difficulty | What the Agent Does |
+|---|---|---|---|
+| 1 | `bug_detection` | Easy | Detect if a bug exists + find its line number |
+| 2 | `bug_classification` | Medium | Classify bug type + severity level |
+| 3 | `code_fix` | Hard | Generate fully corrected Python code |
+
+---
+
+## Bug Categories Covered
+
+10 hand-crafted Python snippets spanning all major bug categories:
+
+- **Security** — shell injection via shell=True
+- **Infinite loops** — missing loop increment
+- **Off-by-one** — binary search, slicing errors
+- **Scope bugs** — late binding closures
+- **Mutation bugs** — mutable default arguments
+- **Recursion bugs** — missing base case decrement
+- **Type errors** — uncast input() values
+- **Logic errors** — wrong operators, empty input guards
+- **Style bugs** — == None vs is None
 
 ---
 
 ## Observation Space
-
 ```json
 {
   "code_snippet": "def calculate_average(numbers):\n    ...",
@@ -47,8 +66,6 @@ The environment exposes 3 tasks of increasing difficulty:
 ---
 
 ## Action Space
-
-The action is a JSON `response` object. Schema depends on the task:
 
 **bug_detection:**
 ```json
@@ -77,12 +94,10 @@ The action is a JSON `response` object. Schema depends on the task:
 
 ## Reward Function
 
-Rewards provide **partial progress signals** across the full trajectory — not just binary end-of-episode scores.
-
 | Component | Task | Weight |
 |---|---|---|
 | Correct has_bug | detection | 0.5 |
-| Correct line number (±1) | detection | 0.5 |
+| Correct line number +/-1 | detection | 0.5 |
 | Correct bug_type | classification | 0.4 |
 | Correct severity | classification | 0.3 |
 | Correct line number | classification | 0.2 |
@@ -93,82 +108,69 @@ Rewards provide **partial progress signals** across the full trajectory — not 
 | Runs without error | fix | 0.2 |
 | Has explanation | fix | 0.1 |
 
-Additional shaping:
-- **Step penalty**: -0.02 per step (efficiency incentive)
-- **First-try bonus**: +0.1 for perfect score on step 1
-- **Garbage penalty**: -0.3 for empty/invalid responses
+- Step penalty: -0.02 per step
+- First-try bonus: +0.1 for perfect score on step 1
+- Garbage penalty: -0.3 for empty/invalid responses
+
+---
+
+## Baseline Scores
+
+Evaluated using Qwen2.5-Coder-1.5B-Instruct — fully local, no API key required.
+Apple M1 MPS backend. Seed=42, 3 snippets per task.
+
+| Task | Difficulty | Score |
+|---|---|---|
+| bug_detection | Easy | 0.000 |
+| bug_classification | Medium | 0.387 |
+| code_fix | Hard | 0.767 |
+| Overall | | 0.385 |
+
+> Low detection score shows the environment correctly challenges weak models.
+> Stronger models score significantly higher on the same tasks.
 
 ---
 
 ## Setup & Usage
 
 ### Local
-
 ```bash
-git clone <repo>
+git clone https://github.com/Farhan487/codereview-env
 cd codereview-env
 pip install -r requirements.txt
-```
-
-**Run the server:**
-```bash
 python server.py
-# API at http://localhost:7860
-```
-
-**Run baseline:**
-```bash
-export OPENAI_API_KEY=sk-...
-python baseline.py --model gpt-4o-mini --snippets 5
 ```
 
 ### Docker
-
 ```bash
 docker build -t codereview-env .
-docker run -p 7860:7860 -e OPENAI_API_KEY=sk-... codereview-env
+docker run -p 7860:7860 codereview-env
 ```
 
 ### Python API
-
 ```python
 from env import CodeReviewEnv, Action
 
 env = CodeReviewEnv(task_id="bug_detection", seed=42)
 obs = env.reset()
 
-action = Action(response={"has_bug": True, "line_number": 7})
+action = Action(response={"has_bug": True, "line_number": 4})
 obs, reward, done, info = env.step(action)
 
 print(f"Score: {info['score']}, Reward: {reward}")
 ```
 
----
+### Run Baseline (OpenAI)
+```bash
+export OPENAI_API_KEY=sk-...
+python baseline.py --model gpt-4o-mini --snippets 5
+```
 
-## Baseline Scores
-
-Evaluated on `gpt-4o-mini` with 5 snippets per task, temperature=0, seed=42:
-
-| Task | Difficulty | Avg Score |
-|---|---|---|
-| bug_detection | Easy | ~0.82 |
-| bug_classification | Medium | ~0.61 |
-| code_fix | Hard | ~0.44 |
-
----
-
-## Dataset
-
-The environment includes 10 hand-crafted Python snippets covering:
-- Logic errors (division by zero, infinite loops, wrong operators)
-- Off-by-one errors (binary search, slicing)
-- Type errors (uncast input)
-- Security vulnerabilities (shell injection)
-- Scope/closure bugs (late binding lambdas)
-- Mutable default arguments
-- Recursion bugs
-
-Each snippet includes: bug location, type, severity, expected fix, and test cases.
+### Run Baseline (Local - no API key needed)
+```bash
+pip install torch transformers accelerate
+python hf_baseline.py --model Qwen/Qwen2.5-Coder-1.5B-Instruct --snippets 5
+```
 
 ---
 
@@ -182,19 +184,22 @@ Each snippet includes: bug location, type, severity, expected fix, and test case
 | `/state` | GET | Get current env state |
 | `/tasks` | GET | List available tasks |
 
+Interactive docs at `/docs`.
+
 ---
 
 ## File Structure
-
 ```
 codereview-env/
-├── env.py           # Main environment (step/reset/state)
-├── tasks.py         # 3 task definitions + graders
-├── dataset.py       # Buggy Python snippets
-├── reward.py        # Shaped reward function
-├── server.py        # FastAPI HTTP server
-├── baseline.py      # OpenAI baseline inference script
-├── openenv.yaml     # OpenEnv spec metadata
+├── env.py                   # Core environment (step/reset/state)
+├── tasks.py                 # 3 task definitions + graders
+├── dataset.py               # 10 buggy Python snippets
+├── reward.py                # Shaped reward function
+├── server.py                # FastAPI HTTP server
+├── baseline.py              # OpenAI baseline script
+├── hf_baseline.py           # Local HF baseline (no API key)
+├── hf_baseline_results.json # Real baseline scores
+├── openenv.yaml             # OpenEnv spec metadata
 ├── Dockerfile
 ├── requirements.txt
 └── README.md
