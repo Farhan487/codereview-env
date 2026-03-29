@@ -30,6 +30,8 @@ class ResetRequest(BaseModel):
     task_id: str = "bug_detection"
     seed: int = 42
     session_id: str = "default"
+    
+    model_config = {"extra": "allow"}
 
 
 class StepRequest(BaseModel):
@@ -43,7 +45,9 @@ def health():
 
 
 @app.post("/reset")
-def reset(req: ResetRequest):
+def reset(req: ResetRequest = None):
+    if req is None:
+        req = ResetRequest()
     env = CodeReviewEnv(task_id=req.task_id, seed=req.seed)
     obs = env.reset()
     _envs[req.session_id] = env
