@@ -108,7 +108,7 @@ class CodeReviewEnv:
 
         obs = self._make_observation()
         info = {
-            "score": score,
+            "score": max(0.01, min(0.99, score)),
             "breakdown": breakdown,
             "cumulative_reward": self._cumulative_reward,
             "steps_taken": self._step_num,

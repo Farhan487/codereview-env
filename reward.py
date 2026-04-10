@@ -61,4 +61,6 @@ class RewardCalculator:
         time_discount = 1.0 - (0.05 * max(0, step_num - 1))
         reward = reward * time_discount
 
-        return round(reward, 4)
+        # Clamp to strictly between 0 and 1
+        reward = max(0.01, min(0.99, round(reward, 4)))
+        return reward
