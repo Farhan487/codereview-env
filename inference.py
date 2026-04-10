@@ -1,15 +1,21 @@
 import os
 import json
 import urllib.request
-import urllib.error
 from openai import OpenAI
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://Farhan487-code-review-env.hf.space")
+# Required environment variables
+API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
 MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
 HF_TOKEN = os.getenv("HF_TOKEN")
-API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY", "dummy")
 
-client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+if HF_TOKEN is None:
+    raise ValueError("HF_TOKEN environment variable is required")
+
+# Initialize OpenAI client through their proxy
+client = OpenAI(
+    base_url=API_BASE_URL,
+    api_key=HF_TOKEN
+)
 
 ENV_URL = "https://Farhan487-code-review-env.hf.space"
 
@@ -28,57 +34,57 @@ def post_env(url, data=None):
         return {}
 
 def get_action(task_id, code_snippet):
-    """Use OpenAI client through the proxy to get agent action."""
     if task_id == "bug_detection":
         prompt = (
             f"Analyze this Python code and detect if it has a bug. "
-            f"Return ONLY valid JSON: {{\"has_bug\": true, \"line_number\": <int>}}\n\n"
-            f"Code:\n{code_snippet}"
+            f"Return ONLY valid JSON with no markdown: "
+            f'{{\"has_bug\": true, \"line_number\": 1}}\n\nCode:\n{code_snippet}'
         )
     elif task_id == "bug_classification":
         prompt = (
             f"Classify the bug in this Python code. "
-            f"Return ONLY valid JSON: {{\"bug_type\": \"logic\", \"severity\": \"high\", "
-            f"\"line_number\": 1, \"explanation\": \"bug found\"}}\n\n"
-            f"Code:\n{code_snippet}"
+            f"Return ONLY valid JSON with no markdown: "
+            f'{{\"bug_type\": \"logic\", \"severity\": \"high\", '
+            f'\"line_number\": 1, \"explanation\": \"bug found\"}}\n\nCode:\n{code_snippet}'
         )
     else:
         prompt = (
             f"Fix the bug in this Python code. "
-            f"Return ONLY valid JSON: {{\"fixed_code\": \"<fixed code>\", "
-            f"\"explanation\": \"fixed the bug\"}}\n\n"
-            f"Code:\n{code_snippet}"
+            f"Return ONLY valid JSON with no markdown: "
+            f'{{\"fixed_code\": \"<fixed>\", \"explanation\": \"fixed\"}}'
+            f'\n\nCode:\n{code_snippet}'
         )
 
     try:
         completion = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
-                {"role": "system", "content": "You are an expert Python code reviewer."},
+                {"role": "system", "content": "You are an expert Python code reviewer. Return only valid JSON."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=256,
+            max_tokens=512,
             temperature=0.0,
         )
         text = completion.choices[0].message.content.strip()
-
         if "```" in text:
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-
+            parts = text.split("```")
+            for part in parts:
+                if part.startswith("json"):
+                    text = part[4:].strip()
+                    break
+                elif part.strip().startswith("{"):
+                    text = part.strip()
+                    break
         start = text.find('{')
         end = text.rfind('}')
         if start != -1 and end != -1:
             text = text[start:end+1]
-
         return json.loads(text)
-
-    except Exception as e:
+    except Exception:
         if task_id == "bug_detection":
             return {"has_bug": True, "line_number": 1}
         elif task_id == "bug_classification":
-            return {"bug_type": "logic", "severity": "high", 
+            return {"bug_type": "logic", "severity": "high",
                    "line_number": 1, "explanation": "bug found"}
         else:
             return {"fixed_code": code_snippet, "explanation": "fixed"}
@@ -89,7 +95,6 @@ def run():
     for task_id in tasks:
         rewards = []
         steps_taken = 0
-        score = 0.0
         success = False
 
         print(f"[START] task={task_id} env=codereview-env model={MODEL_NAME}", flush=True)
@@ -102,8 +107,11 @@ def run():
 
             obs = obs_data.get("observation", {}) if obs_data else {}
             code_snippet = obs.get("code_snippet", "")
+            done = False
 
-            for step in range(1, 4):
+            for step in range(1, 6):
+                if done:
+                    break
                 try:
                     response = get_action(task_id, code_snippet)
                     result = post_env(f"{ENV_URL}/step", {"response": response})
@@ -115,23 +123,26 @@ def run():
                     rewards.append(reward)
                     steps_taken = step
 
-                    print(f"[STEP] step={step} action={json.dumps(response)} reward={reward:.2f} done={str(done).lower()} error=null", flush=True)
+                    action_str = json.dumps(response).replace(" ", "")
+                    print(f"[STEP] step={step} action={action_str} reward={reward:.2f} done={str(done).lower()} error=null", flush=True)
 
-                    if done:
+                    if done or score >= 1.0:
+                        success = True
                         break
 
                 except Exception as e:
-                    print(f"[STEP] step={step} action=null reward=0.00 done=false error={str(e)}", flush=True)
                     rewards.append(0.0)
                     steps_taken = step
-
-            success = score >= 0.1
-            rewards_str = ",".join(f"{r:.2f}" for r in rewards)
-            print(f"[END] success={str(success).lower()} steps={steps_taken} score={score:.2f} rewards={rewards_str}", flush=True)
+                    print(f"[STEP] step={step} action=null reward=0.00 done=false error={str(e)}", flush=True)
 
         except Exception as e:
+            rewards.append(0.0)
+            steps_taken = 1
             print(f"[STEP] step=1 action=null reward=0.00 done=false error={str(e)}", flush=True)
-            print(f"[END] success=false steps=1 score=0.00 rewards=0.00", flush=True)
+
+        finally:
+            rewards_str = ",".join(f"{r:.2f}" for r in rewards) if rewards else "0.00"
+            print(f"[END] success={str(success).lower()} steps={steps_taken} rewards={rewards_str}", flush=True)
 
 if __name__ == "__main__":
     run()
