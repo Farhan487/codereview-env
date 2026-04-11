@@ -41,7 +41,7 @@ class BugDetectionTask:
 
         # Validate response shape
         if not isinstance(response, dict):
-            return 0.0, breakdown
+            return 0.01, breakdown
 
         predicted_has_bug = response.get("has_bug")
         predicted_line = response.get("line_number")
@@ -67,7 +67,7 @@ class BugDetectionTask:
             breakdown["line_number_correct"] = 0.5
             score += 0.5
 
-        return min(score, 1.0), breakdown
+        return max(0.01, min(0.99, score)), breakdown
 
 
 # ── Task 2: Bug Classification (Medium) ───────────────────────────────────────
@@ -101,7 +101,7 @@ class BugClassificationTask:
         score = 0.0
 
         if not isinstance(response, dict):
-            return 0.0, breakdown
+            return 0.01, breakdown
 
         pred_type = str(response.get("bug_type", "")).lower().strip()
         pred_sev = str(response.get("severity", "")).lower().strip()
@@ -140,7 +140,7 @@ class BugClassificationTask:
             breakdown["has_explanation"] = 0.1
             score += 0.1
 
-        return min(score, 1.0), breakdown
+        return max(0.01, min(0.99, score)), breakdown
 
 
 # ── Task 3: Code Fix (Hard) ───────────────────────────────────────────────────
@@ -174,14 +174,14 @@ class CodeFixTask:
         score = 0.0
 
         if not isinstance(response, dict):
-            return 0.0, breakdown
+            return 0.01, breakdown
 
         fixed_code = response.get("fixed_code", "")
         explanation = response.get("explanation", "")
         expected_fix = snippet.get("fixed_code", "")
 
         if not isinstance(fixed_code, str) or not fixed_code.strip():
-            return 0.0, breakdown
+            return 0.01, breakdown
 
         # 1. Valid Python syntax
         try:
@@ -222,7 +222,7 @@ class CodeFixTask:
             breakdown["has_explanation"] = 0.1
             score += 0.1
 
-        return min(score, 1.0), breakdown
+        return max(0.01, min(0.99, score)), breakdown
 
 
 # ── Helper Functions ──────────────────────────────────────────────────────────
