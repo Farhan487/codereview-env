@@ -116,7 +116,8 @@ def run():
                     response = get_action(task_id, code_snippet)
                     result = post_env(f"{ENV_URL}/step", {"response": response})
 
-                    reward = result.get("reward", 0.0) if result else 0.0
+                    reward = result.get("reward", 0.01) if result else 0.01
+                    reward = max(0.01, min(0.99, reward))
                     done = result.get("done", False) if result else False
                     score = result.get("info", {}).get("score", 0.0) if result else 0.0
 
