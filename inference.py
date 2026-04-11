@@ -132,17 +132,17 @@ def run():
                         break
 
                 except Exception as e:
-                    rewards.append(0.0)
+                    rewards.append(0.01)
                     steps_taken = step
-                    print(f"[STEP] step={step} action=null reward=0.00 done=false error={str(e)}", flush=True)
+                    print(f"[STEP] step={step} action=null reward=0.01 done=false error={str(e)}", flush=True)
 
         except Exception as e:
-            rewards.append(0.0)
+            rewards.append(0.01)
             steps_taken = 1
-            print(f"[STEP] step=1 action=null reward=0.00 done=false error={str(e)}", flush=True)
+            print(f"[STEP] step=1 action=null reward=0.01 done=false error={str(e)}", flush=True)
 
         finally:
-            rewards_str = ",".join(f"{r:.2f}" for r in rewards) if rewards else "0.00"
+            rewards_str = ",".join(f"{r:.2f}" for r in rewards) if rewards else "0.01"
             print(f"[END] success={str(success).lower()} steps={steps_taken} rewards={rewards_str}", flush=True)
 
 if __name__ == "__main__":
