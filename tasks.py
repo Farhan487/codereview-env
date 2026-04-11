@@ -36,7 +36,7 @@ class BugDetectionTask:
           - Correct has_bug detection: 0.5
           - Correct line number (±1 tolerance): 0.5
         """
-        breakdown = {"has_bug_correct": 0.0, "line_number_correct": 0.0}
+        breakdown = {"has_bug_correct": 0.01, "line_number_correct": 0.01}
         score = 0.0
 
         # Validate response shape
@@ -93,10 +93,10 @@ class BugClassificationTask:
           - Has explanation (non-empty string): 0.1
         """
         breakdown = {
-            "bug_type_correct": 0.0,
-            "severity_correct": 0.0,
-            "line_number_correct": 0.0,
-            "has_explanation": 0.0,
+            "bug_type_correct": 0.01,
+            "severity_correct": 0.01,
+            "line_number_correct": 0.01,
+            "has_explanation": 0.01,
         }
         score = 0.0
 
@@ -165,11 +165,11 @@ class CodeFixTask:
           - Has explanation: 0.1
         """
         breakdown = {
-            "valid_python": 0.0,
-            "structurally_similar": 0.0,
-            "matches_expected": 0.0,
-            "runs_without_error": 0.0,
-            "has_explanation": 0.0,
+            "valid_python": 0.01,
+            "structurally_similar": 0.01,
+            "matches_expected": 0.01,
+            "runs_without_error": 0.01,
+            "has_explanation": 0.01,
         }
         score = 0.0
 

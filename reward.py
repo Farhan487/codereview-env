@@ -43,7 +43,7 @@ class RewardCalculator:
             Shaped reward (can be negative)
         """
         # Detect garbage response (all zeros in breakdown)
-        all_zero = all(v == 0.0 for v in breakdown.values())
+        all_zero = all(v <= 0.01 for v in breakdown.values())
         if all_zero:
             return 0.01
 
