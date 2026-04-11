@@ -45,7 +45,7 @@ class RewardCalculator:
         # Detect garbage response (all zeros in breakdown)
         all_zero = all(v == 0.0 for v in breakdown.values())
         if all_zero:
-            return self.GARBAGE_PENALTY
+            return 0.01
 
         reward = score
 
