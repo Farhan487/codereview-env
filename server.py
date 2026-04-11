@@ -66,6 +66,10 @@ def step(req: StepRequest):
     action = Action(response=req.response)
     obs, reward, done, info = env.step(action)
 
+    # Clamp score strictly between 0 and 1
+    if "score" in info:
+        info["score"] = max(0.01, min(0.99, float(info["score"])))
+    reward = max(0.01, min(0.99, float(reward)))
     return {
         "observation": obs.model_dump(),
         "reward": reward,
