@@ -99,7 +99,7 @@ def run():
                     steps_taken = step
 
                     action_str = json.dumps(response).replace(" ", "")
-                    print(f"[STEP] step={step} action={action_str} reward={reward:.2f} done={str(done).lower()} error=null", flush=True)
+                    print(f"[STEP] step={step} action={action_str} reward={reward:.3f} done={str(done).lower()} error=null", flush=True)
 
                     if done:
                         success = reward > 0.5
@@ -108,15 +108,15 @@ def run():
                 except Exception as e:
                     rewards.append(0.5)
                     steps_taken = step
-                    print(f"[STEP] step={step} action=null reward=0.50 done=false error={str(e)}", flush=True)
+                    print(f"[STEP] step={step} action=null reward=0.500 done=false error={str(e)}", flush=True)
 
         except Exception as e:
             rewards.append(0.5)
             steps_taken = 1
-            print(f"[STEP] step=1 action=null reward=0.50 done=false error={str(e)}", flush=True)
+            print(f"[STEP] step=1 action=null reward=0.500 done=false error={str(e)}", flush=True)
 
         finally:
-            rewards_str = ",".join(f"{r:.2f}" for r in rewards) if rewards else "0.50"
+            rewards_str = ",".join(f"{r:.3f}" for r in rewards) if rewards else "0.500"
             print(f"[END] success={str(success).lower()} steps={steps_taken} rewards={rewards_str}", flush=True)
 
 if __name__ == "__main__":
