@@ -90,7 +90,7 @@ def run():
             code_snippet = obs.get("code_snippet", "")
             done = False
 
-            for step in range(1, 4):
+            for step in range(1, 2):
                 if done:
                     break
                 try:
