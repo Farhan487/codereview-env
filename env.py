@@ -107,8 +107,9 @@ class CodeReviewEnv:
         self._done = score >= 1.0 or self._step_num >= self._max_steps
 
         obs = self._make_observation()
+        EPS = 1e-6
         info = {
-            "score": max(0.01, min(0.99, score)),
+            "score": max(EPS, min(1 - EPS, float(score))),
             "breakdown": breakdown,
             "cumulative_reward": self._cumulative_reward,
             "steps_taken": self._step_num,

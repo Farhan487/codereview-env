@@ -45,7 +45,7 @@ class RewardCalculator:
         # Detect garbage response (all zeros in breakdown)
         all_zero = all(v <= 0.01 for v in breakdown.values())
         if all_zero:
-            return 0.01
+            return 1e-6
 
         reward = score
 
@@ -62,5 +62,4 @@ class RewardCalculator:
         reward = reward * time_discount
 
         # Clamp to strictly between 0 and 1
-        reward = max(0.01, min(0.99, round(reward, 4)))
-        return reward
+        return max(1e-6, min(1 - 1e-6, float(round(reward, 4))))
