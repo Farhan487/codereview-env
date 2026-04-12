@@ -98,7 +98,7 @@ def run():
                     rewards.append(reward)
                     steps_taken = step
 
-                    action_str = json.dumps(response).replace(" ", "")
+                    action_str = json.dumps(response)
                     print(f"[STEP] step={step} action={action_str} reward={reward:.3f} done={str(done).lower()} error=null", flush=True)
 
                     if done:
