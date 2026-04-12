@@ -92,7 +92,7 @@ def run():
                     response = get_action(task_id, code_snippet)
                     result = post_env(f"{ENV_URL}/step", {"response": response})
 
-                    reward = clamp(result.get("reward", 0.5) if result else 0.5)
+                    reward = clamp(result.get("reward", 0.5) if result and result.get("reward") is not None else 0.5)
                     done = result.get("done", False) if result else False
 
                     rewards.append(reward)
